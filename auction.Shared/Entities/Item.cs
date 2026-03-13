@@ -25,5 +25,8 @@ namespace auction.Shared.Entities
 
         public Guid? HighestBidderId { get; set; }
         public AppUser? HighestBidder { get; set; } = null!;
+
+        // bid history
+        public ICollection<Bid> Bids { get; set; } = new List<Bid>();
     }
 }

@@ -1,9 +1,12 @@
-﻿using auction.Shared.Services.RabbitMQ;
+﻿using RabbitMQ.Client;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
-using RabbitMQ.Client;
+using System.Threading.Tasks;
 
-namespace auction.API.Services.RabbitMQ
+namespace auction.Shared.Services.RabbitMQ
 {
     public class RabbitMqService : IRabbitMqService
     {

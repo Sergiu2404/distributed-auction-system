@@ -1,11 +1,14 @@
 ﻿using auction.API.Services.Auth;
 using auction.Shared.Data;
 using auction.Shared.Entities;
+using auction.Shared.Services.BidService;
+using auction.Shared.Services.ItemService;
 using auction.Shared.Services.RabbitMQ;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+
 
 namespace auction.API.Controllers
 {
@@ -13,52 +16,48 @@ namespace auction.API.Controllers
     [ApiController]
     public class ItemController : ControllerBase
     {
-        private readonly AppDbContext _db;
-        private readonly IRabbitMqService _rabbitService;
-
-        public ItemController(AppDbContext db, IRabbitMqService rabbitService)
+        private readonly IItemService _itemService;
+        public ItemController(IItemService itemService)
         {
-            _db = db;
-            _rabbitService = rabbitService;
+            _itemService = itemService;
         }
 
         [HttpGet]
-        public IActionResult GetAll() => Ok(_db.Items.ToList());
+        public IActionResult GetAll() => Ok(_itemService.GetAllItems());
 
         [HttpGet("{id}")]
+        //[Authorize(Roles = "Admin")]
         public IActionResult GetById(Guid id)
         {
-            var item = _db.Items.Find(id);
+            var item = _itemService.GetItemById(id);
             return item == null ? NotFound() : Ok(item);
         }
 
-        //[Authorize(Roles = "Admin")]
         [HttpPost]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] Item item)
         {
-            var adminId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            item.OwnerId = adminId;
-            item.Id = Guid.NewGuid();
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
 
-            await _rabbitService.PublishAsync("admin_queue", new { Action = "CREATE", Data = item });
-            return Accepted(new { Message = "Creation request sent to be processed" });
+            await _itemService.CreateItemAsync(item, Guid.Parse(userIdClaim));
+            return Accepted(new { Message = "create request sent" });
         }
 
-        //[Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] Item item)
         {
-            item.Id = id;
-            await _rabbitService.PublishAsync("admin_queue", new { Action = "UPDATE", Data = item });
-            return Accepted(new { Message = "update request sent to be processed" });
+            await _itemService.UpdateItemAsync(id, item);
+            return Accepted(new { Message = "update request sent" });
         }
 
-        //[Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _rabbitService.PublishAsync("admin_queue", new { Action = "DELETE", Id = id });
-            return Accepted(new { Message = "delete request sent to be processed" });
+            await _itemService.DeleteItemAsync(id);
+            return Accepted(new { Message = "delete request sent" });
         }
     }
 }

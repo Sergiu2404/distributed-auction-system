@@ -14,5 +14,6 @@ namespace auction.Shared.Data
 
         public DbSet<AppUser> Users => Set<AppUser>();
         public DbSet<Item> Items => Set<Item>();
+        public DbSet<Bid> Bids => Set<Bid>();
     }
 }
